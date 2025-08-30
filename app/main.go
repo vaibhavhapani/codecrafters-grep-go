@@ -38,11 +38,13 @@ func main() {
 }
 
 func handler(line []byte, pattern string) (bool, error){
-	switch pattern {
-	case `\d`:
+	switch  {
+	case pattern == `\d`:
 		return isDigit(line)
-	case `\w`:
+	case  pattern ==`\w`:
 		return isWord(line)
+	case len(pattern) >= 3 && pattern[0] == '[' && pattern[len(pattern)-1] == ']':
+        return isCharGroup(line, pattern)
 	default:
 		return matchLine(line, pattern)
 	}
@@ -83,4 +85,16 @@ func isWord(line []byte) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func isCharGroup(line []byte, pattern string) (bool, error) {
+    chars := pattern[1 : len(pattern)-1]
+
+    for _, r := range line {
+        if bytes.ContainsAny([]byte{byte(r)}, chars) {
+            return true, nil
+        }
+    }
+
+    return false, nil
 }
