@@ -44,7 +44,10 @@ func handler(line []byte, pattern string) (bool, error){
 	case  pattern ==`\w`:
 		return isWord(line)
 	case len(pattern) >= 3 && pattern[0] == '[' && pattern[len(pattern)-1] == ']':
-        return isCharGroup(line, pattern)
+        if len(pattern) > 3 && pattern[1] == '^' {
+			return isNegativeCharGroup(line, pattern)
+		}
+		return isCharGroup(line, pattern)
 	default:
 		return matchLine(line, pattern)
 	}
@@ -98,3 +101,16 @@ func isCharGroup(line []byte, pattern string) (bool, error) {
 
     return false, nil
 }
+
+func isNegativeCharGroup(line []byte, pattern string) (bool, error) {
+	exclude := pattern[2 : len(pattern)-1]
+
+	for _, r := range line {
+		if !bytes.ContainsAny([]byte{byte(r)}, exclude) {
+            return true, nil
+        }
+	}
+
+	return false, nil
+}
+
