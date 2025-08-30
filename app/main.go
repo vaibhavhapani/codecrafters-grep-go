@@ -38,10 +38,14 @@ func main() {
 }
 
 func handler(line []byte, pattern string) (bool, error){
-	if pattern == `\d` {
+	switch pattern {
+	case `\d`:
 		return isDigit(line)
-	} 
-	return matchLine(line, pattern)
+	case `\w`:
+		return isWord(line)
+	default:
+		return matchLine(line, pattern)
+	}
 }
 
 func matchLine(line []byte, pattern string) (bool, error) {
@@ -64,9 +68,19 @@ func matchLine(line []byte, pattern string) (bool, error) {
 
 func isDigit(line []byte) (bool, error) {
 	for _, b := range line {
-		if !unicode.IsDigit(rune(b)) {
-			return false, nil
+		if unicode.IsDigit(rune(b)) {
+			return true, nil
 		}
 	}
-	return true, nil
+	return false, nil
+}
+
+func isWord(line []byte) (bool, error) {
+	for _, b := range string(line) {
+		if unicode.IsLetter(rune(b)) || unicode.IsDigit(rune(b)) || b == '_' {
+			fmt.Printf("%c", rune(b))
+			return true, nil
+		}
+	}
+	return false, nil
 }
