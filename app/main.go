@@ -24,7 +24,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	ok, err := matchLine(line, pattern)
+	ok, err := handler(line, pattern)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(2)
@@ -37,13 +37,17 @@ func main() {
 	// default exit code is 0 which means success
 }
 
-func matchLine(line []byte, pattern string) (bool, error) {
-	if utf8.RuneCountInString(pattern) != 1 {
-		return false, fmt.Errorf("unsupported pattern: %q", pattern)
-	}
-
+func handler(line []byte, pattern string) (bool, error){
 	if pattern == `\d` {
 		return isDigit(line)
+	} 
+	return matchLine(line, pattern)
+}
+
+func matchLine(line []byte, pattern string) (bool, error) {
+	
+	if utf8.RuneCountInString(pattern) != 1 {
+		return false, fmt.Errorf("unsupported pattern: %q", pattern)
 	}
 
 	var ok bool
