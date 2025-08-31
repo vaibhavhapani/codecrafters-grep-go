@@ -39,6 +39,10 @@ func main() {
 func handler(line []byte, pattern string) (bool, error){
 	input := string(line)
 
+	if len(pattern) > 0 && pattern[0] == '^' {
+		return matchAt(input, pattern[1:], 0), nil
+	}
+
 	for i := 0; i <= len(input); i++ {
 		if(matchAt(input, pattern, i)) {
 			return true, nil
@@ -95,10 +99,10 @@ func parsePatternElement(pattern string) (string, int) {
 
 
 func matchElement(char rune, element string) bool {
-	switch element {
-	case `\d`:
+	switch  {
+	case element == `\d`:
 		return unicode.IsDigit(char)
-	case `\w`:
+	case element == `\w`:
 		return unicode.IsLetter(char) || unicode.IsDigit(char) || char == '_'
 	default:
 		if len(element) >= 3 && element[0] == '[' && element[len(element)-1] == ']' {
