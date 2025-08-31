@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -38,79 +37,99 @@ func main() {
 }
 
 func handler(line []byte, pattern string) (bool, error){
-	switch  {
-	case pattern == `\d`:
-		return isDigit(line)
-	case  pattern ==`\w`:
-		return isWord(line)
-	case len(pattern) >= 3 && pattern[0] == '[' && pattern[len(pattern)-1] == ']':
-        if len(pattern) > 3 && pattern[1] == '^' {
-			return isNegativeCharGroup(line, pattern)
+	input := string(line)
+
+	for i := 0; i <= len(input); i++ {
+		if(matchAt(input, pattern, i)) {
+			return true, nil
 		}
-		return isCharGroup(line, pattern)
+	}
+
+	return false, nil
+}
+
+func matchAt(input string, pattern string, pos int) bool {
+	if len(pattern) == 0 {
+		return true
+	}
+
+	if pos >= len(input) {
+		return false
+	}
+
+	element, elementLen := parsePatternElement(pattern)
+
+	char, charLen := utf8.DecodeRuneInString(input[pos:])
+	if char == utf8.RuneError {
+		return false
+	}
+
+	if(!matchElement(char, element)) {
+		return false
+	}
+
+	return matchAt(input, pattern[elementLen:], pos+charLen)
+}
+
+func parsePatternElement(pattern string) (string, int) {
+	if len(pattern) == 0 {
+		return "", 0
+	}
+
+	if pattern[0] == '\\' && len(pattern) > 1 {
+		return pattern[:2], 2
+	}
+
+	if pattern[0] == '[' {
+		for i := 1; i < len(pattern); i++ {
+			if pattern[i] == ']' {
+				return pattern[:i+1], i+1
+			}
+		}
+		fmt.Printf("Error: There's no closing bracket, malformed pattern!!!")
+		return pattern[:1], 1
+	}
+
+	return pattern[:1], 1
+}
+
+
+func matchElement(char rune, element string) bool {
+	switch element {
+	case `\d`:
+		return unicode.IsDigit(char)
+	case `\w`:
+		return unicode.IsLetter(char) || unicode.IsDigit(char) || char == '_'
 	default:
-		return matchLine(line, pattern)
-	}
-}
-
-func matchLine(line []byte, pattern string) (bool, error) {
-	
-	if utf8.RuneCountInString(pattern) != 1 {
-		return false, fmt.Errorf("unsupported pattern: %q", pattern)
-	}
-
-	var ok bool
-
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
-	fmt.Fprintln(os.Stderr, "Logs from your program will appear here!")
-
-	// Uncomment this to pass the first stage
-
-	ok = bytes.ContainsAny(line, pattern)
-
-	return ok, nil
-}
-
-func isDigit(line []byte) (bool, error) {
-	for _, b := range line {
-		if unicode.IsDigit(rune(b)) {
-			return true, nil
+		if len(element) >= 3 && element[0] == '[' && element[len(element)-1] == ']' {
+			return matchCharGroup(char, element)
+		}
+		if len(element) == 1 {
+			return char == rune(element[0])
 		}
 	}
-	return false, nil
+	return false
 }
 
-func isWord(line []byte) (bool, error) {
-	for _, b := range string(line) {
-		if unicode.IsLetter(rune(b)) || unicode.IsDigit(rune(b)) || b == '_' {
-			fmt.Printf("%c", rune(b))
-			return true, nil
+func matchCharGroup(char rune, pattern string) bool {
+	if len(pattern) < 3 {
+		return false
+	}
+
+	if pattern[1] == '^' {
+		for _, c := range pattern[2:len(pattern)-1] {
+			if char == c {
+				return false
+			}
+		}
+		return true
+	}
+
+	for _, c := range pattern[1:len(pattern)-1] {
+		if char == c {
+			return true
 		}
 	}
-	return false, nil
+
+	return false
 }
-
-func isCharGroup(line []byte, pattern string) (bool, error) {
-    chars := pattern[1 : len(pattern)-1]
-
-    for _, r := range line {
-        if bytes.ContainsAny([]byte{byte(r)}, chars) {
-            return true, nil
-        }
-    }
-
-    return false, nil
-}
-
-func isNegativeCharGroup(line []byte, pattern string) (bool, error) {
-	exclude := pattern[2 : len(pattern)-1]
-
-	for _, r := range line {
-		if !bytes.ContainsAny([]byte{byte(r)}, exclude) {
-            return true, nil
-        }
-	}
-
-	return false, nil
-}
-
